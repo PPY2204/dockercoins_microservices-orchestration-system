@@ -1,0 +1,29 @@
+metricbeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+setup.template.settings:
+  index.number_of_shards: 1
+
+setup.kibana:
+  host: "http://kibana:5601"
+
+#output.elasticsearch:
+#  hosts: ["http://elasticsearch:9200"]
+
+output.logstash:
+  hosts: ["logstash:5000"]
+
+processors:
+  - add_host_metadata: ~
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+logging:
+  level: debug
+  to_files: true
+  files:
+    path: /var/log/metricbeat
+    name: metricbeat
+    keepfiles: 7
+    permissions: 0644

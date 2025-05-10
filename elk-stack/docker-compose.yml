@@ -1,0 +1,101 @@
+version: '3.7'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    environment:
+      - discovery.type=single-node
+      - network.host=0.0.0.0
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - coinswarmnet
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == master01
+      resources:
+        limits:
+          memory: 3g
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.17.4
+    networks:
+      - coinswarmnet
+    configs:
+      - source: logstash-pipeline-conf
+        target: /usr/share/logstash/pipeline/logstash.conf
+    deploy:
+      replicas: 2
+
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.4
+    ports:
+      - "5601:5601"
+    networks:
+      - coinswarmnet
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+      - KIBANA_SERVICE_ACCOUNT_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjp4NUpveGZoalRSLUV0eW0wRmExLWR3
+      - XPACK_SECURITY_ENABLED=false
+      - TELEMETRY_ENABLED=false
+      - XPACK_MONITORING_ENABLED=false
+      - ELASTICSEARCH_REQUESTTIMEOUT=60000
+      - ELASTICSEARCH_STARTUPTIMEOUT=30000
+      - ELASTICSEARCH_SHARDTIMEOUT=60000
+      - XPACK_ALERTING_RULE_RUN_TIMEOUT=60s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1g
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:8.17.4
+    user: root
+    configs:
+      - source: metricbeat-config
+        target: /usr/share/metricbeat/metricbeat.yml
+      - source: module-docker
+        target: /usr/share/metricbeat/modules.d/docker.yml
+      - source: module-system
+        target: /usr/share/metricbeat/modules.d/system.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+      - metricbeat-data:/usr/share/metricbeat/data
+    command: ["metricbeat", "run", "-e"]
+    networks:
+      - coinswarmnet
+    depends_on:
+      - logstash
+    deploy:
+      replicas: 1
+
+configs:
+  logstash-pipeline-conf:
+    file: ./logstash.conf
+  metricbeat-config:
+    file: ./metricbeat.yml
+  module-docker:
+    file: ./modules.d/docker.yml
+  module-system:
+    file: ./modules.d/system.yml
+
+volumes:
+  esdata:
+  metricbeat-data:
+
+networks:
+  coinswarmnet:
+    external: true

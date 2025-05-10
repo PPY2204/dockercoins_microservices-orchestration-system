@@ -1,0 +1,9 @@
+- module: system
+  metricsets:
+    - cpu
+    - memory
+    - network
+    - diskio
+    - process
+  period: 30s
+  enabled: true

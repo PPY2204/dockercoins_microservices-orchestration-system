@@ -1,0 +1,16 @@
+groups:
+- name: mrnamcoin-alerts
+  rules:
+  - alert: HighTransactionVolume
+    expr: sum(rate(mrnamcoin_transactions_processed[5m])) by (node) > 1000
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High transaction volume on {{ $labels.node }}"
+
+  - alert: BlockSyncLag
+    expr: mrnamcoin_block_sync_delta > 30
+    for: 5m
+    labels:
+      severity: warning
