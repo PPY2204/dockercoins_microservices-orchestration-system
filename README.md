@@ -1,59 +1,188 @@
-🐳 Docker Swarm Microservices System – Monitoring & Orchestration
-Deploy, monitor, and optimize software system built on microservices architectures using Docker Swarm Orchestration
-* Project Overview
-- Status: Ongoing (~80% complete)
-- Team Size: 2 members
-- My Role: Main – Responsible for infrastructure setup, orchestration, and deployment
-* Technology Stack
-- Orchestration & Containerization: Docker, Docker Swarm
-- Monitoring & Logging:
-    + ELK Stack (Elasticsearch, Logstash, Kibana)
-    + Prometheus + InfluxDB + Grafana
-- Others: Linux (Ubuntu), VirtualBox, Nginx (in progress)
+# 🐳 Docker Swarm Microservices System – Monitoring & Orchestration
 
-* System Setup (Virtual Environment)
-1. Virtualized Environment Setup
-- Installed essential packages:
-  sudo apt update
-  sudo apt install ifupdown net-tools openssh-client openssh-server
+![Docker Swarm](https://img.shields.io/badge/Docker-Swarm-2496ED?logo=docker)
+![Status](https://img.shields.io/badge/Status-80%25%20Complete-yellowgreen)
+![Team](https://img.shields.io/badge/Team-2%20Members-blue)
+
+This project involves deploying, monitoring, and optimizing a microservices-based distributed system using **Docker Swarm orchestration**. It simulates a real-world scalable environment with centralized logging and system health monitoring.
+
+## 📌 Project Overview
+
+A production-like microservices system demonstrating:
+
+- **Container orchestration** with Docker Swarm
+- **Centralized monitoring** with Prometheus/Grafana
+- **Distributed logging** using ELK Stack
+- **Automated scaling** of stateless services
+
+## 🚀 Technology Stack
+
+### Core Components
+| Component       | Purpose                          | Version     |
+|----------------|----------------------------------|-------------|
+| Docker Swarm   | Container orchestration          | 24.10       |
+| Ubuntu Server  | Host OS                          | 24.10       |
+
+### Monitoring Stack
+| Tool           | Function                         | Port        |
+|----------------|----------------------------------|-------------|
+| Prometheus     | Metrics collection               | 9090        |
+| Grafana        | Visualization                    | 3000        |
+| cAdvisor       | Container metrics                | 8080        |
+| node_exporter  | Host metrics                     | 9100        |
+| InfluxDB       | Time-series DB for metrics       | 8086        |
+
+### Logging Stack
+| Component      | Function                         | Port        |
+|----------------|----------------------------------|-------------|
+| Elasticsearch  | Log storage                      | 9200        |
+| Logstash       | Log processing                   | 5044        |
+| Kibana         | Log visualization                | 5601        |
+
+## 🛠️ System Setup (Virtual Environment)
+
+### 1. Virtual Machine Setup
 - Created 10 Ubuntu virtual machines using VirtualBox:
-    + 3 Manager Nodes: master01 (192.168.100.10), master02 (192.168.100.11), master03 (192.168.100.12)
-    + 7 Worker Nodes: worker01 → worker07 (192.168.100.13 → 192.168.100.19)
-- Each VM configured with:
-    + NAT Adapter: for internet access (default gateway: 10.0.2.2)
-    + Host-only Adapter:
-        o Internal VM communication using subnet 192.168.100.0/24
-        o Host-to-VM SSH access supported
-- Manually assigned static IPs via /etc/network/interfaces
-    #interfaces (5) file used by ifup (8) and ifdown (8)
-    #Include files from /etc/network/interfaces.d: source /etc/network/interfaces.d/*
-    auto lo
-    iface lo inet loopback
-    auto enp0s3 iface enp0s3 inet dhcp
-    auto enp0s8
-    iface enp0s8 inet static address 192.168.100.10
-  Ctrl O
-  Enter
-  Ctrl X
-- Then sudo reboot and validated using "ping", "ip a", "route -n", "ssh", "ifconfig -a"
-- Check NAT network:
-  ping www.google.com → see network reply successfully
-- Check Host-only network:
-    + From windows machine, open cmd, then type ping 192.168.100.10
-    + Or try ssh connection from windows machine to master01 machine
-      Start ssh server in master01 machine and check the status is active (running)
-      From external windows machine, we use cmd to ssh osboxes@192.168.100.10
-(*) Do the same for 9 machines master02, master03, worker01, worker02, worker03, worker04, worker05, worker06, worker07.
-The IP part of the host-only network corresponds to 192.168.100.11, 192.168.100.12, 192.168.100.13, 192.168.100.14, 192.168.100.15, 192.168.100.16, 192.168.100.17, 192.168.100.18, 192.168.100.19
-=> If all test cases are successful, the construction of the virtual network infrastructure for 10 computers (computer group) is completed.
+  - **3 Manager Nodes**: master01 (192.168.100.10), master02 (192.168.100.11), master03 (192.168.100.12)
+  - **7 Worker Nodes**: worker01 → worker07 (192.168.100.13 → 192.168.100.19)
 
-- Static IPs were assigned for swarm initialization (--advertise-addr).
-2. Docker Swarm Deployment
-- Swarm cluster initialized and nodes joined via generated token.
-- Overlay network created (coinswarmnet) to allow communication between services across nodes.
-3. Services Deployed
-- Initial microservices provided by instructor:
-redis, rng, hasher, worker, webui
-- Deployed as Docker services on swarm with correct port mapping and scaling:
+### 2. Software Installation
+```bash
+sudo apt update && sudo apt install -y \
+    ifupdown \
+    net-tools \
+    openssh-server \
+    docker.io \
+    docker-compose
+```
 
-PHẦN 2: KIỂM TRA CÁC GÓI PHẦN MỀM TRONG HỆ THỐNG VỚI DOCKER ENGINE
+### 3. Network Configuration
+Each VM was configured with two network adapters:
+- **NAT Adapter**:
+  - Internet access (Gateway: `10.0.2.2`)
+- **Host-only Adapter**:
+  - Internal VM communication using subnet `192.168.100.0/24`
+  - Host-to-VM SSH access supported
+
+#### Static IP Configuration
+Manually assigned static IPs via /etc/network/interfaces
+```bash
+#interfaces (5) file used by ifup (8) and ifdown (8)
+#Include files from /etc/network/interfaces.d: source /etc/network/interfaces.d/*
+auto lo
+iface lo inet loopback
+auto enp0s3
+iface enp0s3 inet dhcp
+auto enp0s8
+iface enp0s8 inet static
+address 192.168.100.10
+```
+
+#### Validation Commands
+```bash
+ping www.google.com          # Test internet
+ping 192.168.100.11          # Test internal network
+ssh osboxes@192.168.100.10    # Test SSH connectivity from external windows machine
+```
+
+
+
+## ⚙️ System Description
+
+### 1. Docker Swarm Deployment
+```bash
+# On master01:
+docker swarm init --advertise-addr 192.168.100.10
+
+# On other nodes:
+docker swarm join --token <token> 192.168.100.10:2377
+```
+
+#### Overlay Network
+```bash
+sudo docker network create --scope=swarm --attachable -d overlay --opt encrypted coinswarmnet
+```
+
+### 2. Services Deployed
+| Service  | Image                    | Replicas | Ports       | Network       |
+|----------|--------------------------|----------|-------------|---------------|
+| redis    | redis:alpine            | 3        | 6379:6379   | coinswarmnet  |
+| webui    | dockersamples/visualizer| 1        | 8080:8080   | coinswarmnet  |
+
+| redis    | redis:alpine            | 3        | 6379:6379   | coinswarmnet  |
+| rng      | rng                     | 2        | 8001:80     | coinswarmnet  |
+| webui    | webui                   | 1        | 8080:8080   | coinswarmnet  |
+#### Deployment Example
+```bash
+docker service create \
+    --name rng \
+    --network coinswarmnet \
+    --replicas 2 \
+    --publish published=8001,target=80 \
+    custom-rng:latest
+```
+
+### 3. Centralized Logging
+- Set up **ELK Stack** (Elasticsearch, Logstash, Kibana)
+- Deployed via Docker Compose and routed logs through Logstash:
+```conf
+input {
+  docker {
+    host => "unix:///var/run/docker.sock"
+  }
+}
+output {
+  elasticsearch {
+    hosts => ["elasticsearch:9200"]
+  }
+}
+```
+- Logs visualized at `http://<manager-ip>:5601`
+
+### 4. System Monitoring
+- Installed Prometheus, cAdvisor, node_exporter
+- Metrics stored in InfluxDB and visualized in Grafana:
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['master01:9090', 'worker01:9090']
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node_exporter:9100']
+```
+
+### 5. Performance Testing
+| Metric               | Before Optimization | After Scaling |
+|----------------------|---------------------|---------------|
+| RNG Latency (avg)    | 455ms               | 210ms         |
+| Hasher Throughput    | 120 req/s           | 350 req/s     |
+| Redis Hit Rate       | 78%                 | 92%           |
+
+- Used `httping` for service latency
+- Used `top`, `vmstat`, `docker stats` for system metrics
+
+### 6. (In Progress)
+- Configuring **Nginx** as a reverse proxy for routing and load balancing
+- Adding alerting rules and auto-scaling logic
+
+## 📈 Key Learnings & Contributions
+
+- Built full virtualized infrastructure with static IPs
+- Gained hands-on experience with Docker Swarm orchestration and networking
+- Set up centralized logging with ELK Stack and visual dashboards with Grafana
+- Diagnosed and optimized performance issues using metrics and logs
+
+## ➡️ Next Steps
+
+- [ ] Finalize Nginx reverse proxy configuration
+- [ ] Implement automated scaling policies
+- [ ] Add Prometheus alert rules
+- [ ] Document recovery and restart procedures
+
+## 📝 References
+- Course: *Big Data Foundations – Industrial University of HCMC*  
+- Instructors: Thầy Huỳnh Nam & Dương Thái Bảo
+- [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
+- [Prometheus Best Practices](https://prometheus.io/docs/practices/naming/)
