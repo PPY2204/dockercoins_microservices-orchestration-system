@@ -102,13 +102,13 @@ ssh osboxes@192.168.100.10    # SSH from host
 
 ### 📌 Services
 
-| Service | Description                       | Port |
-| ------- | --------------------------------- | ---- |
-| rng     | Generates random bytes (HTTP)     | 8001 |
-| hasher  | Computes hash of POSTed data      | 8002 |
-| worker  | Background service (calls rng...) | -    |
-| redis   | Stores hash results               | 6379 |
-| webui   | Visualizes blockchain-like data   | 8000 |
+| Service | Description                                    | Port |
+| ------- | ---------------------------------------------- | ---- |
+| rng     | Web service generating random bytes            | 8001 |
+| hasher  | Web service computing hash of POSTed data      | 8002 |
+| worker  | Background process using rng and hasher        | -    |
+| redis   | Stores hash results (TCP)                      | 6379 |
+| webui   | Web interface to watch progress                | 8000 |
 
 ### 🔗 Communication Flow
 
@@ -247,11 +247,14 @@ docker stack deploy -c docker-compose.yml dockercoins
 ### Manual Scaling
 
 ```bash
-docker service scale dockercoins_rng=5
-docker service scale dockercoins_hasher=5
+docker service scale dockercoins_worker=15
+docker service scale dockercoins_redis=2
+docker service scale dockercoins_rng=10
+docker service scale dockercoins_hasher=10
+docker service scale dockercoins_webui=5
 ```
 
-> ⚠️ Auto-scaling needs external tools (e.g., Prometheus + KEDA).
+> Next-step: Auto-scaling needs external tools (e.g., Prometheus + KEDA). 
 
 ### HA Monitoring
 
@@ -288,6 +291,18 @@ services:
     networks:
       - coinswarmnet
 
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.8.0
+    user: root
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - logstash
+    networks:
+      - coinswarmnet
+
   kibana:
     image: kibana:8.8.0
     ports:
@@ -308,6 +323,9 @@ input {
     host => "unix:///var/run/docker.sock"
   }
 }
+
+filter {}
+
 output {
   elasticsearch {
     hosts => ["elasticsearch:9200"]
@@ -370,7 +388,7 @@ scrape_configs:
   - job_name: 'docker'
     static_configs:
       - targets: ['master01:9090', 'worker01:9090']
-  - job_name: 'node'
+  - job_name: 'node_exporter'
     static_configs:
       - targets: ['node_exporter:9100']
   - job_name: 'cadvisor'
@@ -387,11 +405,6 @@ scrape_configs:
 
 **Tools Used**: httping, top, vmstat, docker stats
 
-⚠️ **In Progress**
-- Nginx reverse proxy configuration
-- Prometheus alert rules
-- Auto-scaling logic
-
 ---
 
 ## 📈 Key Learnings
@@ -403,7 +416,7 @@ scrape_configs:
 
 ---
 
-## ➡️ Next Steps
+## ➡️ In Progress
 
 ### Nginx Reverse Proxy:
 - Create `nginx.conf` with upstream blocks
@@ -439,8 +452,8 @@ scrape_configs:
 
 ## 📝 References
 
-- **Course**: Big Data Foundations – Industrial University of HCMC
-- **Instructors**: Mr. Huỳnh Nam & Dương Thái Bảo
+- **Course**: Big Data – Industrial University of HCMC
+- **Instructors**: Mr. Huỳnh Nam 
 
 **Resources**:
 - [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
